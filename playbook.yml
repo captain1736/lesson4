@@ -1,0 +1,98 @@
+---
+
+- hosts: appservers
+  tasks:
+    - name: Install EPEL repo
+      yum:
+        name: epel-release
+        state: present
+      become: yes
+
+    - name: install nginx server
+      yum:
+        name: nginx 
+        state: present
+        update_cache: yes
+      become: yes
+      tags: nginx
+
+    - name: update nginx config
+      template:
+        src: templates/nginx.conf.j2
+        dest: /etc/nginx/nginx.conf
+        owner: nginx
+      become: yes
+      tags: nginx
+      
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+        daemon_reload: yes
+        enabled: yes
+      become: yes
+      tags: nginx
+      
+    - name: Installation PHP
+      yum: name=php state=present
+      
+    - name: install lamp stack
+      yum:
+        pkg:
+          - php-mysql
+          - php-curl
+          - php-json
+          - php-cgi
+          - php-xsl
+          - php-cgi
+          - php-gd
+          - php-mbstring
+          - php-zip
+          - php-xmlrpc
+          - php-soap
+          - php-intl
+        state: present
+        update_cache: yes 
+        
+    - name: Download MySql
+      get_url:
+        url: http://repo.mysql.com/mysql57-community-release-el7.rpm
+        dest: /root/
+      tags: mysql
+      
+    - name: Download MySql
+      ignore_errors: true
+      no_log: True
+      shell: sudo rpm -ivh mysql57-community-release-el7.rpm
+      tags: mysql
+      
+    - name: install mysql server
+      yum:
+        name: mysql-server
+        state: present
+        update_cache: yes
+      become: yes
+      tags: mysql
+      
+    - name: install Python
+      shell: sudo yum install -y python3 python3-pip
+      tags: [mysql, python]
+      
+    - name: install PythonMysql
+      shell: yum install -y MySQL-python
+      tags: [mysql, python]
+      
+    - name: add vault 
+      include_vars:
+        file: mysql.yml
+      tags: mysql  
+      
+    - name: create a new database
+      mysql_db:
+        login_unix_socket: /var/lib/mysql/mysql.sock
+        name: geekbrains 
+        state: present
+        login_user: "{{ login_user }}"
+        login_password: "{{ login_password }}"
+      tags: mysql
+     
